@@ -4,6 +4,56 @@
     border: 1px solid grey;
 }
 
-.food {
-    background-color: gold;
+.food-1 {
+    position: relative;
+}
+
+.food-1::after {
+    content: '1';
+    width: inherit;
+    height: inherit;
+    font-size: 30px;
+    font-weight: 600;
+    display: block;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: yellow;
+    color: blue;
+}
+
+.food-5 {
+    position: relative;
+}
+
+.food-5::after {
+    content: '5';
+    width: inherit;
+    height: inherit;
+    font-size: 30px;
+    font-weight: 600;
+    display: block;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: blue;
+    color: #fff;
+}
+
+.food-10 {
+    position: relative;
+}
+
+.food-10::after {
+    content: '10';
+    width: inherit;
+    height: inherit;
+    font-size: 30px;
+    font-weight: 600;
+    display: block;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: red;
+    color: #fff;
 }

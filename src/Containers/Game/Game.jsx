@@ -15,8 +15,9 @@ let SPEED = 500;
 
 const Game = () => {
     const [snake, setSnake] = useState([[0, 0]]);
-    const [food, setFood] = useState([1, 1]);
+    const [food, setFood] = useState([1, 1, 10]);
     const [direction, setDirection] = useState(KEY_INFO.pause);
+    const [count, setCount] = useState(0);
 
     const moveToOppositeSide = (posinion) => {
         if (posinion >= BOARD_SIZE) return 0;
@@ -32,17 +33,27 @@ const Game = () => {
     }
 
     const generateFoot = () => {
+        const typesOfFood = [
+            [1, 1, 1],
+            [1, 1, 5],
+            [1, 1, 10]
+        ];
+
+        const randomType = typesOfFood[Math.floor(Math.random() * typesOfFood.length)];
+
         let newFood = [
             Math.floor(Math.random() * BOARD_SIZE),
-            Math.floor(Math.random() * BOARD_SIZE)
+            Math.floor(Math.random() * BOARD_SIZE),
+            randomType[2]
         ];
+
         let isSnake = snake.some(elem => elem[0] === newFood[0] && elem[1] === newFood[1]);
         if (!isSnake) {
             setFood(newFood);
         } else {
             generateFoot();
         }
-    }
+    };
 
     const snakeMove = () => {
         const timer = setTimeout(() => {
@@ -79,6 +90,7 @@ const Game = () => {
             if (head[0] === food[0] && head[1] === food[1]) {
                 sliceIndex = 0;
                 generateFoot();
+                setCount((count) => count + food[2]);
             }
             setSnake(newSnake.slice(sliceIndex));
 
@@ -103,17 +115,27 @@ const Game = () => {
         };
     }, []);
 
-
     return (
         <div className="Game">
+            <h1>count: {count}</h1>
             {
                 BOARD.map((row, indexRow) => (
                     <div className='row' key={indexRow}>
                         {
                             row.map((_, indexCell) => {
                                 let type = snake.some(elem => elem[0] === indexRow && elem[1] === indexCell) && 'snake'; // snake
+
                                 if (type !== 'snake') {
-                                    type = (food[0] === indexRow && food[1] === indexCell) && 'food'; // food
+
+                                    if (food[2] === 1) {
+                                        type = (food[0] === indexRow && food[1] === indexCell) && 'food-1';
+                                    }
+                                    if (food[2] === 5) {
+                                        type = (food[0] === indexRow && food[1] === indexCell) && 'food-5';
+                                    }
+                                    if (food[2] === 10) {
+                                        type = (food[0] === indexRow && food[1] === indexCell) && 'food-10';
+                                    }
                                 }
                                 return (
                                     <Cell type={type} key={indexCell} />
