@@ -227,7 +227,7 @@ const Game = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [direction]);
 
   useEffect(() => {
     generateFood();
