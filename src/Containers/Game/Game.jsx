@@ -1,5 +1,6 @@
 import './Game.css';
 import Cell from '../../components/Cell/Cell';
+import Modal from '../../components/Modal/Modal';
 import { useEffect, useState } from 'react';
 
 const BOARD_SIZE = 10;
@@ -21,11 +22,19 @@ const Game = () => {
     const [isPaused, setIsPaused] = useState(false);
     const [timerId, setTimerId] = useState(null);
     const [foundFoodIndex, setFoundFoodIndex] = useState(-1);
+    const [isGameOver, setIsGameOver] = useState(false);
 
     const moveToOppositeSide = (position) => {
         if (position >= BOARD_SIZE) return 0;
         if (position < 0) return BOARD_SIZE - 1;
         return position;
+    };
+
+    const checkCollision = () => {
+        const head = snake[snake.length - 1];
+        const body = snake.slice(0, snake.length - 1);
+
+        return body.some(([row, col]) => row === head[0] && col === head[1]);
     };
 
     const handleKeyDown = (event) => {
@@ -40,7 +49,7 @@ const Game = () => {
                     return newPaused;
                 });
             } else
-                setDirection(prevDirection => {
+                setDirection((prevDirection) => {
                     const isOppositeDirection =
                         (newDirection === KEY_INFO.up && prevDirection === KEY_INFO.down) ||
                         (newDirection === KEY_INFO.down && prevDirection === KEY_INFO.up) ||
@@ -141,7 +150,9 @@ const Game = () => {
                 newSnake.push(head);
 
                 let sliceIndex = 1;
-                const foundFoodIndex = food.findIndex((f) => f[0] === head[0] && f[1] === head[1]);
+                const foundFoodIndex = food.findIndex(
+                    (f) => f[0] === head[0] && f[1] === head[1]
+                );
                 if (foundFoodIndex !== -1) {
                     sliceIndex = 0;
                     const foundFood = food[foundFoodIndex];
@@ -156,18 +167,33 @@ const Game = () => {
                     });
                 }
 
+                if (checkCollision()) {
+                    setIsGameOver(true);
+                    console.log(snake)
+                    clearTimeout(timerId); // Остановка таймера при столкновении
+                    alert(`Game Over!!!!! Your score: ${count}`);
+                    return snake;
+
+                }
+
                 return newSnake.slice(sliceIndex);
             });
         }, SPEED);
         return timer;
     };
 
+    const restartGame = () => {
+        window.location.reload();
+    };
+
     useEffect(() => {
-        setTimerId(snakeMove());
+        if (!isGameOver) {
+            setTimerId(snakeMove());
+        }
         return () => {
             clearTimeout(timerId);
         };
-    }, [snake]);
+    }, [snake, isGameOver]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
@@ -179,31 +205,39 @@ const Game = () => {
     useEffect(() => {
         generateFood();
     }, []);
+    console.log(snake);
 
     return (
         <div className="Game">
-            <h1>count: {count}</h1>
-            {
-                BOARD.map((row, indexRow) => (
-                    <div className='row' key={indexRow}>
-                        {
-                            row.map((_, indexCell) => {
-                                let type = snake.some(elem => elem[0] === indexRow && elem[1] === indexCell) && 'snake'; // snake
+            {isGameOver ? (
+                <Modal count={count} restartGame={restartGame}/>
+            ) : (
+                <>
+                    <h1>count: {count}</h1>
+                    {BOARD.map((row, indexRow) => (
+                        <div className="row" key={indexRow}>
+                            {row.map((_, indexCell) => {
+                                let type =
+                                    snake.some(
+                                        (elem) =>
+                                            elem[0] === indexRow && elem[1] === indexCell
+                                    ) && 'snake'; // snake
                                 if (type !== 'snake') {
-                                    const foundFood = food.find((f) => f[0] === indexRow && f[1] === indexCell);
+                                    const foundFood = food.find(
+                                        (f) => f[0] === indexRow && f[1] === indexCell
+                                    );
                                     if (foundFood) {
                                         type = `food-${foundFood[2]}`;
                                     }
                                 }
-                                return (
-                                    <Cell type={type} key={indexCell} />
-                                )
-                            })
-                        }
-                    </div>
-                ))}
+                                return <Cell type={type} key={indexCell} />;
+                            })}
+                        </div>
+                    ))}
+                </>
+            )}
         </div>
-    )
-}
+    );
+};
 
 export default Game;
