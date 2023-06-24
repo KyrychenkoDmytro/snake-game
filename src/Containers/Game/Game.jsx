@@ -29,9 +29,9 @@ const Game = () => {
     };
 
     const handleKeyDown = (event) => {
-        if (Object.values(KEY_INFO).includes(event.keyCode)) {
-            const key = Object.keys(KEY_INFO).find((key) => KEY_INFO[key] === event.keyCode);
-            if (event.keyCode === KEY_INFO.pause) {
+        const newDirection = event.keyCode;
+        if (Object.values(KEY_INFO).includes(newDirection)) {
+            if (newDirection === KEY_INFO.pause) {
                 setIsPaused((isPaused) => {
                     const newPaused = !isPaused;
                     if (!newPaused) {
@@ -39,9 +39,19 @@ const Game = () => {
                     }
                     return newPaused;
                 });
-            } else {
-                setDirection(KEY_INFO[key]);
-            }
+            } else
+                setDirection(prevDirection => {
+                    const isOppositeDirection =
+                        (newDirection === KEY_INFO.up && prevDirection === KEY_INFO.down) ||
+                        (newDirection === KEY_INFO.down && prevDirection === KEY_INFO.up) ||
+                        (newDirection === KEY_INFO.left && prevDirection === KEY_INFO.right) ||
+                        (newDirection === KEY_INFO.right && prevDirection === KEY_INFO.left);
+
+                    if (!isOppositeDirection) {
+                        return newDirection;
+                    }
+                    return prevDirection;
+                });
         }
     };
 
@@ -62,7 +72,7 @@ const Game = () => {
                     Math.floor(Math.random() * BOARD_SIZE),
                 ];
             } while (
-                occupiedPositions.some( 
+                occupiedPositions.some(
                     ([row, col]) => row === randomPosition[0] && col === randomPosition[1]
                 )
             );
@@ -121,7 +131,7 @@ const Game = () => {
                         move = [0, 1];
                         break;
                     default:
-                        console.log('ayaa');
+                        move = [0, 0];
                 }
 
                 const head = [
@@ -151,8 +161,6 @@ const Game = () => {
         }, SPEED);
         return timer;
     };
-
-    console.log(snake);
 
     useEffect(() => {
         setTimerId(snakeMove());
