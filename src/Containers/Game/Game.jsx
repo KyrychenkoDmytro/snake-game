@@ -9,8 +9,8 @@ const KEY_INFO = {
     down: 40,
     left: 37,
     right: 39,
-    pause: 32
-}
+    pause: 32,
+};
 let SPEED = 500;
 
 const Game = () => {
@@ -18,25 +18,37 @@ const Game = () => {
     const [food, setFood] = useState([1, 1, 10]);
     const [direction, setDirection] = useState(KEY_INFO.pause);
     const [count, setCount] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    const [timerId, setTimerId] = useState(null);
 
-    const moveToOppositeSide = (posinion) => {
-        if (posinion >= BOARD_SIZE) return 0;
-        if (posinion < 0) return BOARD_SIZE - 1;
-        return posinion
-    }
+    const moveToOppositeSide = (position) => {
+        if (position >= BOARD_SIZE) return 0;
+        if (position < 0) return BOARD_SIZE - 1;
+        return position;
+    };
 
     const handleKeyDown = (event) => {
         if (Object.values(KEY_INFO).includes(event.keyCode)) {
-            const key = Object.keys(KEY_INFO).find(key => KEY_INFO[key] === event.keyCode);
-            setDirection(KEY_INFO[key] = event.keyCode)
+            const key = Object.keys(KEY_INFO).find((key) => KEY_INFO[key] === event.keyCode);
+            if (event.keyCode === KEY_INFO.pause) {
+                setIsPaused((isPaused) => {
+                    const newPaused = !isPaused;
+                    if (!newPaused) {
+                        setTimerId(snakeMove());
+                    }
+                    return newPaused;
+                });
+            } else {
+                setDirection(KEY_INFO[key]);
+            }
         }
-    }
+    };
 
-    const generateFoot = () => {
+    const generateFood = () => {
         const typesOfFood = [
             [1, 1, 1],
             [1, 1, 5],
-            [1, 1, 10]
+            [1, 1, 10],
         ];
 
         const randomType = typesOfFood[Math.floor(Math.random() * typesOfFood.length)];
@@ -44,72 +56,73 @@ const Game = () => {
         let newFood = [
             Math.floor(Math.random() * BOARD_SIZE),
             Math.floor(Math.random() * BOARD_SIZE),
-            randomType[2]
+            randomType[2],
         ];
 
-        let isSnake = snake.some(elem => elem[0] === newFood[0] && elem[1] === newFood[1]);
+        let isSnake = snake.some((elem) => elem[0] === newFood[0] && elem[1] === newFood[1]);
         if (!isSnake) {
             setFood(newFood);
         } else {
-            generateFoot();
+            generateFood();
         }
     };
 
     const snakeMove = () => {
+        console.log(snake);
         const timer = setTimeout(() => {
-            const newSnake = snake;
-            let move = [];
+            if (isPaused) return;
 
-            switch (direction) {
-                case KEY_INFO.pause:
-                    move = [0, 0];
-                    break;
-                case KEY_INFO.up:
-                    move = [-1, 0];
-                    break;
-                case KEY_INFO.down:
-                    move = [1, 0];
-                    break;
-                case KEY_INFO.left:
-                    move = [0, -1];
-                    break;
-                case KEY_INFO.right:
-                    move = [0, 1];
-                    break;
-                default:
-                    console.log('ayaa');
-            }
+            setSnake((snake) => {
+                const newSnake = [...snake];
+                let move = [];
 
-            const head = [
-                moveToOppositeSide(newSnake[newSnake.length - 1][0] + move[0]),
-                moveToOppositeSide(newSnake[newSnake.length - 1][1] + move[1])
-            ];
-            newSnake.push(head);
+                switch (direction) {
+                    case KEY_INFO.pause:
+                        move = [0, 0];
+                        break;
+                    case KEY_INFO.up:
+                        move = [-1, 0];
+                        break;
+                    case KEY_INFO.down:
+                        move = [1, 0];
+                        break;
+                    case KEY_INFO.left:
+                        move = [0, -1];
+                        break;
+                    case KEY_INFO.right:
+                        move = [0, 1];
+                        break;
+                    default:
+                        console.log('ayaa');
+                }
 
-            let sliceIndex = 1;
-            if (head[0] === food[0] && head[1] === food[1]) {
-                sliceIndex = 0;
-                generateFoot();
-                setCount((count) => count + food[2]);
-            }
-            setSnake(newSnake.slice(sliceIndex));
+                const head = [
+                    moveToOppositeSide(newSnake[newSnake.length - 1][0] + move[0]),
+                    moveToOppositeSide(newSnake[newSnake.length - 1][1] + move[1]),
+                ];
+                newSnake.push(head);
 
-        }, SPEED)
+                let sliceIndex = 1;
+                if (head[0] === food[0] && head[1] === food[1]) {
+                    sliceIndex = 0;
+                    generateFood();
+                    setCount((count) => count + food[2]);
+                }
+                return newSnake.slice(sliceIndex);
+            });
+        }, SPEED);
         return timer;
-    }
+    };
 
-    // move snake
     useEffect(() => {
-        const interval = snakeMove();
+        setTimerId(snakeMove());
         return () => {
-            clearInterval(interval);
-        }
+            clearTimeout(timerId);
+        };
     }, [snake]);
 
-    // keydown listener
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
-
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
