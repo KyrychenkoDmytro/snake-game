@@ -15,11 +15,12 @@ let SPEED = 500;
 
 const Game = () => {
     const [snake, setSnake] = useState([[0, 0]]);
-    const [food, setFood] = useState([1, 1, 10]);
+    const [food, setFood] = useState([]);
     const [direction, setDirection] = useState(KEY_INFO.pause);
     const [count, setCount] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const [timerId, setTimerId] = useState(null);
+    const [foundFoodIndex, setFoundFoodIndex] = useState(-1);
 
     const moveToOppositeSide = (position) => {
         if (position >= BOARD_SIZE) return 0;
@@ -50,25 +51,52 @@ const Game = () => {
             [1, 1, 5],
             [1, 1, 10],
         ];
+        const occupiedPositions = snake.map(([row, col]) => [row, col]);
 
-        const randomType = typesOfFood[Math.floor(Math.random() * typesOfFood.length)];
-
-        let newFood = [
-            Math.floor(Math.random() * BOARD_SIZE),
-            Math.floor(Math.random() * BOARD_SIZE),
-            randomType[2],
-        ];
-
-        let isSnake = snake.some((elem) => elem[0] === newFood[0] && elem[1] === newFood[1]);
-        if (!isSnake) {
-            setFood(newFood);
-        } else {
-            generateFood();
+        const newFood = [];
+        for (let i = 0; i < 3; i++) {
+            let randomPosition;
+            do {
+                randomPosition = [
+                    Math.floor(Math.random() * BOARD_SIZE),
+                    Math.floor(Math.random() * BOARD_SIZE),
+                ];
+            } while (
+                occupiedPositions.some( 
+                    ([row, col]) => row === randomPosition[0] && col === randomPosition[1]
+                )
+            );
+            newFood.push([...randomPosition, typesOfFood[i][2]]);
         }
+
+        setFood(newFood);
+    };
+
+    const generateNewFood = (foundFoodIndex) => {
+        const typesOfFood = [
+            [1, 1, 1],
+            [1, 1, 5],
+            [1, 1, 10],
+        ];
+        const occupiedPositions = snake.map(([row, col]) => [row, col]);
+
+        let randomPosition;
+        do {
+            randomPosition = [
+                Math.floor(Math.random() * BOARD_SIZE),
+                Math.floor(Math.random() * BOARD_SIZE),
+            ];
+        } while (
+            occupiedPositions.some(
+                ([row, col]) => row === randomPosition[0] && col === randomPosition[1]
+            )
+        );
+
+        const newFood = [...randomPosition, typesOfFood[foundFoodIndex][2]];
+        return newFood;
     };
 
     const snakeMove = () => {
-        console.log(snake);
         const timer = setTimeout(() => {
             if (isPaused) return;
 
@@ -103,16 +131,28 @@ const Game = () => {
                 newSnake.push(head);
 
                 let sliceIndex = 1;
-                if (head[0] === food[0] && head[1] === food[1]) {
+                const foundFoodIndex = food.findIndex((f) => f[0] === head[0] && f[1] === head[1]);
+                if (foundFoodIndex !== -1) {
                     sliceIndex = 0;
-                    generateFood();
-                    setCount((count) => count + food[2]);
+                    const foundFood = food[foundFoodIndex];
+                    setCount((count) => count + foundFood[2]);
+
+                    setFoundFoodIndex(foundFoodIndex);
+
+                    setFood((food) => {
+                        const newFood = [...food];
+                        newFood[foundFoodIndex] = generateNewFood(foundFoodIndex);
+                        return newFood;
+                    });
                 }
+
                 return newSnake.slice(sliceIndex);
             });
         }, SPEED);
         return timer;
     };
+
+    console.log(snake);
 
     useEffect(() => {
         setTimerId(snakeMove());
@@ -128,6 +168,10 @@ const Game = () => {
         };
     }, []);
 
+    useEffect(() => {
+        generateFood();
+    }, []);
+
     return (
         <div className="Game">
             <h1>count: {count}</h1>
@@ -137,17 +181,10 @@ const Game = () => {
                         {
                             row.map((_, indexCell) => {
                                 let type = snake.some(elem => elem[0] === indexRow && elem[1] === indexCell) && 'snake'; // snake
-
                                 if (type !== 'snake') {
-
-                                    if (food[2] === 1) {
-                                        type = (food[0] === indexRow && food[1] === indexCell) && 'food-1';
-                                    }
-                                    if (food[2] === 5) {
-                                        type = (food[0] === indexRow && food[1] === indexCell) && 'food-5';
-                                    }
-                                    if (food[2] === 10) {
-                                        type = (food[0] === indexRow && food[1] === indexCell) && 'food-10';
+                                    const foundFood = food.find((f) => f[0] === indexRow && f[1] === indexCell);
+                                    if (foundFood) {
+                                        type = `food-${foundFood[2]}`;
                                     }
                                 }
                                 return (
