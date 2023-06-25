@@ -2,6 +2,7 @@ import './Game.css';
 import Cell from '../../components/Cell/Cell';
 import Modal from '../../components/Modal/Modal';
 import { useEffect, useState } from 'react';
+import axios from '../../axios';
 import { throttle } from 'lodash';
 
 const BOARD_SIZE = 10;
@@ -14,18 +15,19 @@ const KEY_INFO = {
   pause: 32,
 };
 const SPEED = {
-  1: 500,
-  2: 460,
-  3: 420,
-  4: 380,
-  5: 340,
-  6: 300,
-  maxSpeed: 260,
+  1: 440,
+  2: 400,
+  3: 360,
+  4: 320,
+  5: 280,
+  6: 240,
+  maxSpeed: 200,
 };
 
 const Game = () => {
+  const [isLogin, setIsLogin] = useState(false);
+  const [name, setName] = useState('');
   const [snake, setSnake] = useState([[0, 0]]);
-  const [canChangeDirection, setCanChangeDirection] = useState(true);
   const [food, setFood] = useState([]);
   const [direction, setDirection] = useState(KEY_INFO.pause);
   const [count, setCount] = useState(0);
@@ -110,7 +112,12 @@ const Game = () => {
       [1, 1, 5],
       [1, 1, 10],
     ];
-    const occupiedPositions = snake.map(([row, col]) => [row, col]);
+    const occupiedPositions = [...snake, ...food].map(([row, col]) => [row, col]);
+
+    const totalCells = BOARD_SIZE * BOARD_SIZE;
+    if (snake.length >= totalCells - 3) {
+      return;
+    }
 
     let randomPosition;
     do {
@@ -203,7 +210,14 @@ const Game = () => {
         if (checkCollision()) {
           setIsGameOver(true);
           clearTimeout(timerId); // Остановка таймера при столкновении
-          alert(`Game Over!!!!! Your score: ${count}`);
+          alert(`Game End!!!!! Your score: ${count}`);
+          return snake;
+        }
+
+        if (newSnake.length === BOARD_SIZE * BOARD_SIZE) {
+          setIsGameOver(true);
+          clearTimeout(timerId);
+          alert(`Game End!!!!! Your score: ${count}`);
           return snake;
         }
 
@@ -237,36 +251,73 @@ const Game = () => {
     generateFood();
   }, []);
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const response = await axios.post('/login', name);
+      console.log(response);
+      if (response.status >= 200 && response.status <= 299) {
+        setIsLogin(!isLogin)
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <div className="Game">
-      {isGameOver ? (
-        <Modal count={count} restartGame={restartGame} />
-      ) : (
-        <>
-          <h1>Count: {count}</h1>
-          <h2>Speed: {currentSpeed}</h2>
-          {BOARD.map((row, indexRow) => (
-            <div className="row" key={indexRow}>
-              {row.map((_, indexCell) => {
-                let type =
-                  snake.some(
-                    (elem) => elem[0] === indexRow && elem[1] === indexCell
-                  ) && 'snake'; // snake
-                if (type !== 'snake') {
-                  const foundFood = food.find(
-                    (f) => f[0] === indexRow && f[1] === indexCell
-                  );
-                  if (foundFood) {
-                    type = `food-${foundFood[2]}`;
-                  }
-                }
-                return <Cell type={type} key={indexCell} />;
-              })}
+      {isLogin ? (
+        <form className='Game__form' onSubmit={handleSubmit}>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            type="text"
+            placeholder="Your Name"
+            required />
+          <button>Submit</button>
+        </form>
+      ) : <>
+        {isGameOver ? (
+          <Modal count={count} restartGame={restartGame} />
+        ) : (
+          <>
+            <div className="left">
+              <h1>Your name: </h1>
+              <h2>Your records:</h2>
+            </div >
+            <div className="center">
+              <h1 style={{ textAlign: 'center' }}>Count: {count}</h1>
+              <h2 style={{ textAlign: 'center' }}>Speed: {currentSpeed}</h2>
+              {BOARD.map((row, indexRow) => (
+                <div className="row" key={indexRow}>
+                  {row.map((_, indexCell) => {
+                    let type =
+                      snake.some(
+                        (elem) => elem[0] === indexRow && elem[1] === indexCell
+                      ) && 'snake'; // snake
+                    if (type !== 'snake') {
+                      const foundFood = food.find(
+                        (f) => f[0] === indexRow && f[1] === indexCell
+                      );
+                      if (foundFood) {
+                        type = `food-${foundFood[2]}`;
+                      }
+                    }
+                    return <Cell type={type} key={indexCell} />;
+                  })}
+                </div>
+              ))}
+              <p style={{ textAlign: 'center', fontSize: '22px' }}>Select the direction of the snake to start the game: "<b>up</b>", "<b>down</b>", "<b>left</b>" or "<b>right</b>"</p>
             </div>
-          ))}
-        </>
-      )}
-    </div>
+            <div className="right">
+              <h1>Top records:</h1>
+            </div>
+
+          </>
+        )}
+      </>
+      }
+    </div >
   );
 };
 

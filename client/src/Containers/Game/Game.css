@@ -1,0 +1,41 @@
+.Game {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+}
+
+.Game__form {
+    grid-column: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-top: 50px;
+}
+.Game__form input {
+    height: 30px;
+    font-size: 20px;
+    border-radius: 8px;
+    padding: 5px 15px;
+}
+
+.Game__form button {
+    height: 44px;
+    font-size: 20px;
+    border-radius: 8px;
+    padding: 5px 15px;
+}
+
+.row {
+    display: flex;
+    justify-content: center;
+}
+
+.snake {
+    background-color: green;
+}
+
+.left,
+.right {
+    text-align: center;
+    font-size: 18px;
+}
