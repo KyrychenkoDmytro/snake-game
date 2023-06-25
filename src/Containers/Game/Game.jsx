@@ -2,6 +2,7 @@ import './Game.css';
 import Cell from '../../components/Cell/Cell';
 import Modal from '../../components/Modal/Modal';
 import { useEffect, useState } from 'react';
+import { throttle } from 'lodash';
 
 const BOARD_SIZE = 10;
 const BOARD = Array(BOARD_SIZE).fill(Array(BOARD_SIZE).fill(0)); // 10x10
@@ -24,6 +25,7 @@ const SPEED = {
 
 const Game = () => {
   const [snake, setSnake] = useState([[0, 0]]);
+  const [canChangeDirection, setCanChangeDirection] = useState(true);
   const [food, setFood] = useState([]);
   const [direction, setDirection] = useState(KEY_INFO.pause);
   const [count, setCount] = useState(0);
@@ -46,7 +48,9 @@ const Game = () => {
     return body.some(([row, col]) => row === head[0] && col === head[1]);
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDownThrottled = throttle((event) => {
+    console.log('newDirection: ' + event.keyCode);
+    console.log('direction: ' + direction);
     const newDirection = event.keyCode;
     if (Object.values(KEY_INFO).includes(newDirection)) {
       if (newDirection === KEY_INFO.pause) {
@@ -71,7 +75,7 @@ const Game = () => {
           return prevDirection;
         });
     }
-  };
+  }, SPEED[currentSpeed]);
 
   const generateFood = () => {
     const typesOfFood = [
@@ -223,9 +227,9 @@ const Game = () => {
   }, [snake, isGameOver, count]);
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDownThrottled);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDownThrottled);
     };
   }, [direction]);
 
