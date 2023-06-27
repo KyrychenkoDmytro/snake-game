@@ -27,10 +27,13 @@ const SPEED = {
 const Game = () => {
   const [isLogin, setIsLogin] = useState(false);
   const [name, setName] = useState('');
+  const [bestScore, setBestScore] = useState(0);
+  const [topRecords, setTopRecords] = useState([]);
   const [snake, setSnake] = useState([[0, 0]]);
   const [food, setFood] = useState([]);
   const [direction, setDirection] = useState(KEY_INFO.pause);
   const [count, setCount] = useState(0);
+  const [isStartGame, setIsStartGame] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [timerId, setTimerId] = useState(null);
   const [foundFoodIndex, setFoundFoodIndex] = useState(-1);
@@ -51,9 +54,10 @@ const Game = () => {
   };
 
   const handleKeyDownThrottled = throttle((event) => {
-    console.log('newDirection: ' + event.keyCode);
-    console.log('direction: ' + direction);
     const newDirection = event.keyCode;
+    if (newDirection === KEY_INFO.up || newDirection === KEY_INFO.down || newDirection === KEY_INFO.left || newDirection === KEY_INFO.right) {
+      setIsStartGame(true);
+    }
     if (Object.values(KEY_INFO).includes(newDirection)) {
       if (newDirection === KEY_INFO.pause) {
         setIsPaused((isPaused) => {
@@ -154,82 +158,94 @@ const Game = () => {
   };
 
   const snakeMove = (count) => {
-    const lvlSpeed = checkSpeed(count);
-    setCurrentSpeed(lvlSpeed);
-    const timer = setTimeout(() => {
-      if (isPaused) return;
+    if (isStartGame) {
+      const lvlSpeed = checkSpeed(count);
+      setCurrentSpeed(lvlSpeed);
+      const timer = setTimeout(() => {
+        if (isPaused) return;
 
-      setSnake((snake) => {
-        const newSnake = [...snake];
-        let move = [];
+        setSnake((snake) => {
+          const newSnake = [...snake];
+          let move = [];
 
-        switch (direction) {
-          case KEY_INFO.pause:
-            move = [0, 0];
-            break;
-          case KEY_INFO.up:
-            move = [-1, 0];
-            break;
-          case KEY_INFO.down:
-            move = [1, 0];
-            break;
-          case KEY_INFO.left:
-            move = [0, -1];
-            break;
-          case KEY_INFO.right:
-            move = [0, 1];
-            break;
-          default:
-            move = [0, 0];
-        }
+          switch (direction) {
+            case KEY_INFO.pause:
+              move = [0, 0];
+              break;
+            case KEY_INFO.up:
+              move = [-1, 0];
+              break;
+            case KEY_INFO.down:
+              move = [1, 0];
+              break;
+            case KEY_INFO.left:
+              move = [0, -1];
+              break;
+            case KEY_INFO.right:
+              move = [0, 1];
+              break;
+            default:
+              move = [0, 0];
+          }
 
-        const head = [
-          moveToOppositeSide(newSnake[newSnake.length - 1][0] + move[0]),
-          moveToOppositeSide(newSnake[newSnake.length - 1][1] + move[1]),
-        ];
-        newSnake.push(head);
+          const head = [
+            moveToOppositeSide(newSnake[newSnake.length - 1][0] + move[0]),
+            moveToOppositeSide(newSnake[newSnake.length - 1][1] + move[1]),
+          ];
+          newSnake.push(head);
 
-        let sliceIndex = 1;
-        const foundFoodIndex = food.findIndex(
-          (f) => f[0] === head[0] && f[1] === head[1]
-        );
-        if (foundFoodIndex !== -1) {
-          sliceIndex = 0;
-          const foundFood = food[foundFoodIndex];
-          setCount((count) => count + foundFood[2]);
+          let sliceIndex = 1;
+          const foundFoodIndex = food.findIndex(
+            (f) => f[0] === head[0] && f[1] === head[1]
+          );
+          if (foundFoodIndex !== -1) {
+            sliceIndex = 0;
+            const foundFood = food[foundFoodIndex];
+            setCount((count) => count + foundFood[2]);
 
-          setFoundFoodIndex(foundFoodIndex);
+            setFoundFoodIndex(foundFoodIndex);
 
-          setFood((food) => {
-            const newFood = [...food];
-            newFood[foundFoodIndex] = generateNewFood(foundFoodIndex);
-            return newFood;
-          });
-        }
+            setFood((food) => {
+              const newFood = [...food];
+              newFood[foundFoodIndex] = generateNewFood(foundFoodIndex);
+              return newFood;
+            });
+          }
 
-        if (checkCollision()) {
-          setIsGameOver(true);
-          clearTimeout(timerId); // Остановка таймера при столкновении
-          alert(`Game End!!!!! Your score: ${count}`);
-          return snake;
-        }
+          if (checkCollision()) {
+            handleGameCompletion();
+          }
 
-        if (newSnake.length === BOARD_SIZE * BOARD_SIZE) {
-          setIsGameOver(true);
-          clearTimeout(timerId);
-          alert(`Game End!!!!! Your score: ${count}`);
-          return snake;
-        }
+          if (newSnake.length === BOARD_SIZE * BOARD_SIZE) {
+            handleGameCompletion();
+          }
 
-        return newSnake.slice(sliceIndex);
-      });
-    }, SPEED[lvlSpeed]);
-    setTimerId(timer);
+          return newSnake.slice(sliceIndex);
+        });
+      }, SPEED[lvlSpeed]);
+      setTimerId(timer);
+    }
   };
+
+  const handleGameCompletion = () => {
+    setIsGameOver(true);
+    clearTimeout(timerId);
+    sendGameResultsToServer();
+    alert(`Game End!!!!! Your score: ${count}`);
+    return snake;
+  }
 
   const restartGame = () => {
     window.location.reload();
   };
+
+  useEffect(() => {
+    const fetchTopRecords = async () => {
+      const { data } = await axios.get();
+      setTopRecords(data.allPlayers);
+    }
+    fetchTopRecords();
+  }, [])
 
   useEffect(() => {
     if (!isGameOver) {
@@ -238,7 +254,7 @@ const Game = () => {
     return () => {
       clearTimeout(timerId);
     };
-  }, [snake, isGameOver, count]);
+  }, [snake, isGameOver, count, isStartGame]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDownThrottled);
@@ -254,19 +270,31 @@ const Game = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
-      const response = await axios.post('/login', name);
+      const response = await axios.post('', { name, bestScore });
       console.log(response);
       if (response.status >= 200 && response.status <= 299) {
         setIsLogin(!isLogin)
+        setName(response.data.name);
+        const { bestScore } = response.data;
+        setBestScore(bestScore);
       }
     } catch (error) {
       console.error(error);
     }
   };
 
+  const sendGameResultsToServer = async () => {
+    try {
+      const response = await axios.post('', { name, bestScore: count });
+      console.log(response);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   return (
     <div className="Game">
-      {isLogin ? (
+      {!isLogin ? (
         <form className='Game__form' onSubmit={handleSubmit}>
           <input
             value={name}
@@ -282,8 +310,8 @@ const Game = () => {
         ) : (
           <>
             <div className="left">
-              <h1>Your name: </h1>
-              <h2>Your records:</h2>
+              <h1>Your name: {name}</h1>
+              <h2>Your record: {bestScore}</h2>
             </div >
             <div className="center">
               <h1 style={{ textAlign: 'center' }}>Count: {count}</h1>
@@ -310,9 +338,18 @@ const Game = () => {
               <p style={{ textAlign: 'center', fontSize: '22px' }}>Select the direction of the snake to start the game: "<b>up</b>", "<b>down</b>", "<b>left</b>" or "<b>right</b>"</p>
             </div>
             <div className="right">
-              <h1>Top records:</h1>
+              <h1>Top 5 record holders:</h1>
+              <ul>
+                {topRecords.map((item, index) => (
+                  <li
+                    key={index}
+                    style={{ fontSize: '30px' }}
+                  >
+                    <i>{item.name}</i>: <b>{item.bestScore}</b>
+                  </li>
+                ))}
+              </ul>
             </div>
-
           </>
         )}
       </>
