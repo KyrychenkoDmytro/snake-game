@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import sequelize from './db.js';
-import models from './models/models.js';
 import router from './routes/index.js';
 import errorHandler from './middleware/ErrorHandlingMiddleware.js';
 
@@ -13,26 +12,6 @@ app.use(express.json());
 app.use(cors());
 app.use('/api', router);
 app.use(errorHandler);
-
-app.get('/', (req, res) => {
-    res.status(200).json({ message: "atata" });
-})
-
-app.post('/login', async (req, res) => {
-    const name = req.body;
-    try {
-        const answer = {
-            loggedIn: true,
-            name
-        }
-        res.json(answer);
-    } catch (error) {
-        res.json({
-            message: 'failed to login',
-            error,
-        })
-    }
-})
 
 const start = async () => {
     try {
